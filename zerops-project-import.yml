@@ -1,0 +1,22 @@
+#yamlPreprocessor=on
+project:
+  name: mattermost
+services:
+  - hostname: pgdb
+    type: postgresql@16
+    mode: NON_HA
+    priority: 10
+
+  - hostname: s3
+    type: object-storage
+    objectStoragePolicy: private
+    objectStorageSize: 2 #GB
+    priority: 10
+
+  - hostname: mattermost
+    type: ubuntu@22.04
+    minContainers: 1
+    maxContainers: 1
+    buildFromGit: https://github.com/zeropsio/recipe-mattermost@main
+    enableSubdomainAccess: true
+    priority: 1

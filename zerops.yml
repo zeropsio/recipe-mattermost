@@ -1,0 +1,40 @@
+zerops:
+  - setup: mattermost
+    build:
+      os: alpine
+      deployFiles: migrate.sh
+    run:
+      os: ubuntu
+      base: "22.04"
+      prepareCommands:
+        - curl -o- https://deb.packages.mattermost.com/repo-setup.sh | sudo bash -s mattermost
+        - sudo apt-get update
+        - sudo apt-get install mattermost postgresql-client -y
+        - sudo systemctl disable mattermost
+        - sudo systemctl stop mattermost
+      initCommands:
+        - ./migrate.sh
+      start: /usr/bin/mattermost server
+      envVariables:
+        connectionString: postgres://${pgdb_user}:${pgdb_password}@${pgdb_hostname}:${pgdb_port}?sslmode=disable&connect_timeout=10&binary_parameters=yes
+        MM_CONFIG: ${connectionString}
+        MM_SQLSETTINGS_DRIVERNAME: postgres
+        MM_SQLSETTINGS_DATASOURCE: ${connectionString}
+        MM_FILESETTINGS_DRIVERNAME: amazons3
+        MM_FILESETTINGS_AMAZONS3ENDPOINT: storage-prg1.zerops.io # needs to be only host
+        MM_FILESETTINGS_AMAZONS3BUCKET: ${s3_bucketName}
+        MM_FILESETTINGS_AMAZONS3ACCESSKEYID: ${s3_accessKeyId}
+        MM_FILESETTINGS_AMAZONS3SECRETACCESSKEY: ${s3_secretAccessKey}
+        MM_LOCALIZATIONSETTINGS_DEFAULTSERVERLOCALE: en
+        MM_LOCALIZATIONSETTINGS_DEFAULTCLIENTLOCALE: en
+        MM_LOGSETTINGS_CONSOLEJSON: 'false'
+        MM_LOGSETTINGS_ENABLEFILE: 'false'
+      ports:
+        - port: 8065
+          httpSupport: true
+      healthCheck:
+        httpGet:
+          scheme: http
+          host: localhost
+          port: 8065
+          path: /api/v4/system/ping
